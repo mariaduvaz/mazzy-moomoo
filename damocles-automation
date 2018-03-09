@@ -1,0 +1,75 @@
+#!/usr/bin/env bash                                                             
+#running damocles then my python code   
+
+
+#LOCATING FILES#
+
+dustfile=/home/maria/damocles-master/damocles/input/dust.in
+speciesfile=/home/maria/damocles-master/damocles/input/species.in 
+
+########EXTRACTING VARIABLES THAT WE WANT TO ITERATE OVER########
+
+dustmassline=$(awk 'FNR==2' $dustfile)
+dustmass=$(echo $dustmassline | tr -dc '0-9.0-9')
+
+velline=$(awk 'FNR==8' $dustfile)
+velocity=$(echo $velline | tr -dc '0-9.0-9')
+
+radline=$(awk 'FNR==9' $dustfile)
+rad=$(echo $radline | tr -dc '0-9.0-9')
+
+emissline=$(awk 'FNR==11' $dustfile)
+emissivity=$(echo $emissline | tr -dc '0-9.0-9')
+
+species1line=$(awk 'FNR==4' $speciesfile)
+species2line=$(awk 'FNR==5' $speciesfile)
+
+#creating an array to index the dust species information 
+arr=($species1line)
+
+
+
+
+
+#########INCREMENT OVER DUST, RUN DAMOCLES, PLOT
+#echo
+#: <<'END'
+for i in {1..10}:
+	
+	do
+	#increase dust by 0.2
+	dustmass=$(echo "$dustmass+0.2"|bc -l)
+	
+	dustmassnewline="$dustmass   !  Total dust mass (Msun)"	
+	sed -i "2s/.*/$dustmassnewline/" $dustfile
+
+	size=0.01
+	sed -i "4s/${arr[3]}/$size/" $speciesfile   #replacing amin and amax with starting value of 0.03
+	sed -i "4s/${arr[4]}/$size/" $speciesfile
+	
+
+			for i in {1..9}:
+			do	
+			#every time the species changes we need to read in the line again, to update the array			
+			species1line=$(awk 'FNR==4' $speciesfile)
+			species2line=$(awk 'FNR==5' $speciesfile)
+			arr=($species1line)			
+
+
+			size=$(echo "$size+0.02"|bc -l)
+			echo $size			
+			
+						
+			sed -i "4s/${arr[3]}/$size/" $speciesfile
+			sed -i "4s/${arr[4]}/$size/" $speciesfile
+
+			cd /home/maria/damocles-master/damocles
+			./damocles
+			cd /home/maria/PYTHONCODES
+			python damocles-outputplotting.py &	
+			done
+	
+	done
+sed -i "2s/.*/$dustmassline/" $dustfile
+#END
+#echo
